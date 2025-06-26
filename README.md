@@ -4,6 +4,36 @@ RESTful API otentikasi berbasis Node.js/Express dengan sistem **JWT allowlist (w
 
 ---
 
+
+---
+
+## 🔏 Signature Verification
+
+Setiap request ke endpoint API ini (terutama `POST`, `PUT`, `DELETE`) **wajib disertai dua header keamanan**:
+
+- `X-Signature`: signature hasil HMAC SHA256
+- `X-Timestamp`: waktu saat request dibuat (dalam milidetik)
+
+Signature dibuat dari kombinasi:
+
+```
+method + path + body + timestamp
+```
+
+Contoh yang akan di-hash:
+
+```
+POST/api/auth/login{"email":"a@a.com","password":"abc"}1750912634177
+```
+
+Hasil signature harus cocok dengan hasil di server menggunakan `SIGNATURE_KEY`.
+
+⏱️ Signature juga memiliki batas waktu (`SIGNATURE_TIMELIMIT`, default 60 detik). Jika timestamp terlalu jauh dari waktu server, maka request akan dianggap **kedaluwarsa**.
+
+📬 Disarankan menggunakan **Pre-request Script di Postman** untuk otomatisasi pembuatan signature. Dokumentasi lengkap di bagian bawah.
+
+---
+
 ## 🚀 Fitur
 
 - ✅ Register & Login menggunakan email dan password
@@ -29,38 +59,21 @@ RESTful API otentikasi berbasis Node.js/Express dengan sistem **JWT allowlist (w
 ## 🧱 Struktur Proyek
 
 ```
-project-root/
-├── src/
-│   ├── config/                     # Konfigurasi database dan redis
-│   │   ├── db.js
-│   │   └── redis.js
-│   │
-│   ├── controllers/               # Logika utama dari auth endpoint
-│   │   └── auth.controller.js
-│   │
-│   ├── middlewares/              # Middleware untuk auth dan validasi signature
-│   │   ├── auth.middleware.js
-│   │   └── signature.middleware.js
-│   │
-│   ├── models/                   # Abstraksi layer database
-│   │   └── user.model.js
-│   │
-│   ├── routes/                   # Routing endpoint
-│   │   ├── auth.routes.js
-│   │   └── index.js
-│   │
-│   └── utils/                    # Utilitas (jika ada, misalnya helper untuk parsing, hash, dsb)
-│
-├── .env                          # Variabel environment
-├── .env.example                  # Contoh konfigurasi
-├── .gitignore                   # Daftar file yang tidak di-track Git
-├── app.js                        # Inisialisasi Express App
-├── server.js                     # Entry point untuk run server
-├── package.json
-├── package-lock.json
-├── README.md
-├── API TEST.postman_collection.json         # Postman collection
-└── API TEST.postman_environment.json        # Postman environment
+project/
+├── config/
+│   ├── db.js              # Koneksi ke MySQL
+│   └── redis.js           # Koneksi ke Redis
+├── controllers/
+│   └── auth.controller.js # Logika login/register/logout
+├── models/
+│   └── user.model.js      # Query user ke database
+├── middlewares/
+│   └── verifyToken.js     # Validasi token aktif (dari Redis)
+├── routes/
+│   └── auth.routes.js     # Routing untuk auth API
+├── .env                   # Konfigurasi lingkungan
+├── server.js              # Entry point aplikasi
+└── README.md
 ```
 
 ---
@@ -161,16 +174,15 @@ Aplikasi akan berjalan di: `http://localhost:3000`
 
 ## 📮 API Endpoint
 
-| Method | URL                     | Auth | Deskripsi                         |
-| ------ | ----------------------- | ---- | --------------------------------- |
-| POST   | `/auth/register`        | ❌   | Daftar user baru                  |
-| POST   | `/auth/login`           | ❌   | Login dan dapatkan token JWT      |
-| POST   | `/auth/logout`          | ✅   | Logout, hapus token dari Redis    |
-| POST   | `/auth/change-password` | ✅   | Ganti password user               |
-| GET    | `/auth/profile`         | ✅   | Lihat data user yang sedang login |
+| Method | URL                     | Auth | Deskripsi                        |
+|--------|--------------------------|------|----------------------------------|
+| POST   | `/auth/register`         | ❌   | Daftar user baru                 |
+| POST   | `/auth/login`            | ❌   | Login dan dapatkan token JWT     |
+| POST   | `/auth/logout`           | ✅   | Logout, hapus token dari Redis   |
+| POST   | `/auth/change-password`  | ✅   | Ganti password user              |
+| GET    | `/auth/profile`          | ✅   | Lihat data user yang sedang login|
 
 > Gunakan token JWT di header:
->
 > ```
 > Authorization: Bearer <access_token>
 > ```
@@ -192,10 +204,10 @@ Aplikasi akan berjalan di: `http://localhost:3000`
 
 ## 🔁 Tentang `CONCURRENT_LOGIN`
 
-| Nilai             | Efek                                       |
-| ----------------- | ------------------------------------------ |
-| `false` (default) | Login baru akan menghapus semua token lama |
-| `true`            | Login baru tidak menghapus token lama      |
+| Nilai                | Efek                                         |
+|----------------------|----------------------------------------------|
+| `false` (default)    | Login baru akan menghapus semua token lama   |
+| `true`               | Login baru tidak menghapus token lama        |
 
 ---
 
@@ -224,15 +236,15 @@ redis-cli get jwt:1:some-jti
 
 ## 🧰 Teknologi yang Digunakan
 
-| Library      | Fungsi                      |
-| ------------ | --------------------------- |
-| express      | Web framework Node.js       |
-| jsonwebtoken | Pembuatan & verifikasi JWT  |
-| redis        | Penyimpanan token allowlist |
-| bcrypt       | Hash password               |
-| uuid         | Generate ID token (`jti`)   |
-| mysql2       | Query ke MySQL              |
-| dotenv       | Konfigurasi environment     |
+| Library         | Fungsi                        |
+|------------------|-------------------------------|
+| express          | Web framework Node.js         |
+| jsonwebtoken     | Pembuatan & verifikasi JWT     |
+| redis            | Penyimpanan token allowlist    |
+| bcrypt           | Hash password                  |
+| uuid             | Generate ID token (`jti`)      |
+| mysql2           | Query ke MySQL                 |
+| dotenv           | Konfigurasi environment        |
 
 ---
 
@@ -264,6 +276,7 @@ Pull Request & feedback sangat disambut.
 
 Hubungi: [your.email@example.com]
 
+
 ---
 
 ## 🔏 Signature Verification (X-Signature)
@@ -272,10 +285,10 @@ Semua request `POST`, `PUT`, dan `DELETE` **wajib disertai header signature** un
 
 ### 🛡 Header yang Wajib:
 
-| Header        | Keterangan                                         |
-| ------------- | -------------------------------------------------- |
-| `X-Signature` | HMAC SHA256 dari (method + uri + body + timestamp) |
-| `X-Timestamp` | Unix timestamp dalam milidetik                     |
+| Header         | Keterangan                              |
+|----------------|------------------------------------------|
+| `X-Signature`  | HMAC SHA256 dari (method + uri + body + timestamp) |
+| `X-Timestamp`  | Unix timestamp dalam milidetik           |
 
 ### 🔧 Format Signature
 
@@ -287,7 +300,6 @@ HMAC_SHA256(
 ```
 
 Contoh `dataToSign`:
-
 ```
 POST/api/auth/login{"email":"a@a.com","password":"abc"}1750912634177
 ```
@@ -295,10 +307,13 @@ POST/api/auth/login{"email":"a@a.com","password":"abc"}1750912634177
 ### 🧪 Generate Signature (Node.js)
 
 ```js
-const crypto = require("crypto");
+const crypto = require('crypto');
 
 const dataToSign = method + uri + body + timestamp;
-const signature = crypto.createHmac("sha256", SIGNATURE_KEY).update(dataToSign).digest("hex");
+const signature = crypto
+  .createHmac('sha256', SIGNATURE_KEY)
+  .update(dataToSign)
+  .digest('hex');
 ```
 
 ### ⚠️ Signature Timeout
@@ -322,9 +337,7 @@ const path = new URL(fullUrl).pathname;
 
 const raw = pm.request.body?.raw || "";
 let parsedBody = {};
-try {
-  parsedBody = JSON.parse(raw);
-} catch (e) {}
+try { parsedBody = JSON.parse(raw); } catch (e) {}
 const bodyString = JSON.stringify(parsedBody);
 const dataToSign = pm.request.method + path + bodyString + timestamp;
 
@@ -332,14 +345,12 @@ const encoder = new TextEncoder();
 const keyData = encoder.encode(SIGNATURE_KEY);
 const data = encoder.encode(dataToSign);
 
-crypto.subtle
-  .importKey("raw", keyData, { name: "HMAC", hash: "SHA-256" }, false, ["sign"])
-  .then((key) => crypto.subtle.sign("HMAC", key, data))
-  .then((buffer) => {
-    const hex = Array.from(new Uint8Array(buffer))
-      .map((b) => b.toString(16).padStart(2, "0"))
-      .join("");
+crypto.subtle.importKey("raw", keyData, { name: "HMAC", hash: "SHA-256" }, false, ["sign"])
+  .then(key => crypto.subtle.sign("HMAC", key, data))
+  .then(buffer => {
+    const hex = Array.from(new Uint8Array(buffer)).map(b => b.toString(16).padStart(2, "0")).join("");
     pm.request.headers.upsert({ key: "X-Signature", value: hex });
     pm.request.headers.upsert({ key: "X-Timestamp", value: timestamp });
   });
 ```
+
