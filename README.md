@@ -353,7 +353,7 @@ if (methodsWithBody.includes(pm.request.method)) {
 
 // Bangun string signature
 const dataToSign = pm.request.method + path + bodyString + timestamp;
-console.log("🔐 dataToSign:", dataToSign);
+console.log("dataToSign:", dataToSign);
 
 // Buat signature dengan Web Crypto API
 const encoder = new TextEncoder();
@@ -374,6 +374,6 @@ crypto.subtle
     pm.request.headers.upsert({ key: "X-Signature", value: signatureHex });
     pm.request.headers.upsert({ key: "X-Timestamp", value: timestamp.toString() });
 
-    console.log("✅ Signature generated:", signatureHex);
+    console.log("Signature generated:", signatureHex);
   });
 ```
