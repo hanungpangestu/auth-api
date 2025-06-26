@@ -329,28 +329,57 @@ Gunakan Pre-request Script berikut agar header `X-Signature` dan `X-Timestamp` o
 
 ```js
 const SIGNATURE_KEY = pm.environment.get("SIGNATURE_KEY") || "default_secret";
-const now = Date.now();
-const timestamp = now.toString();
 
+// Timestamp seperti backend
+const now = Date.now();
+const datepProccess = Math.trunc(now / 1e3);
+const timestamp = 1e3 * datepProccess + (datepProccess % 997);
+
+// Resolve URL dari {{base_url}}
 const fullUrl = pm.variables.replaceIn(pm.request.url.toString());
 const path = new URL(fullUrl).pathname;
 
-const raw = pm.request.body?.raw || "";
-let parsedBody = {};
-try { parsedBody = JSON.parse(raw); } catch (e) {}
-const bodyString = JSON.stringify(parsedBody);
-const dataToSign = pm.request.method + path + bodyString + timestamp;
+// Tentukan apakah method punya body
+let bodyString = '';
+const methodsWithBody = ['POST', 'PUT', 'PATCH', 'DELETE'];
 
+if (methodsWithBody.includes(pm.request.method)) {
+  const raw = pm.request.body?.raw || '';
+  try {
+    const parsedBody = JSON.parse(raw);
+    bodyString = JSON.stringify(parsedBody);
+  } catch (e) {
+    bodyString = '';
+  }
+}
+
+// Bangun string signature
+const dataToSign = pm.request.method + path + bodyString + timestamp;
+console.log("🔐 dataToSign:", dataToSign);
+
+// Buat signature dengan Web Crypto API
 const encoder = new TextEncoder();
 const keyData = encoder.encode(SIGNATURE_KEY);
 const data = encoder.encode(dataToSign);
 
-crypto.subtle.importKey("raw", keyData, { name: "HMAC", hash: "SHA-256" }, false, ["sign"])
-  .then(key => crypto.subtle.sign("HMAC", key, data))
-  .then(buffer => {
-    const hex = Array.from(new Uint8Array(buffer)).map(b => b.toString(16).padStart(2, "0")).join("");
-    pm.request.headers.upsert({ key: "X-Signature", value: hex });
-    pm.request.headers.upsert({ key: "X-Timestamp", value: timestamp });
-  });
+crypto.subtle.importKey(
+  'raw',
+  keyData,
+  { name: 'HMAC', hash: 'SHA-256' },
+  false,
+  ['sign']
+).then(cryptoKey => {
+  return crypto.subtle.sign('HMAC', cryptoKey, data);
+}).then(signatureBuffer => {
+  const signatureHex = Array.from(new Uint8Array(signatureBuffer))
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('');
+
+  // Masukkan header signature dan timestamp
+  pm.request.headers.upsert({ key: "X-Signature", value: signatureHex });
+  pm.request.headers.upsert({ key: "X-Timestamp", value: timestamp.toString() });
+
+  console.log("✅ Signature generated:", signatureHex);
+});
 ```
 
