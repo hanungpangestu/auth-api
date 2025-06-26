@@ -4,7 +4,6 @@ RESTful API otentikasi berbasis Node.js/Express dengan sistem **JWT allowlist (w
 
 ---
 
-
 ---
 
 ## 🔏 Signature Verification
@@ -40,6 +39,7 @@ Hasil signature harus cocok dengan hasil di server menggunakan `SIGNATURE_KEY`.
 - ✅ JWT (Bearer token) dengan `jti` unik
 - ✅ Redis sebagai token allowlist (TTL per token)
 - ✅ Middleware `verifyToken` hanya menerima token yang terdaftar di Redis
+- ✅ Middleware validasi `X-Signature` untuk setiap request (HMAC SHA256)
 - ✅ Logout menghapus token dari Redis (token tidak valid lagi)
 - ✅ Ganti password & akses profil user
 - ✅ Opsi login multi-device (`CONCURRENT_LOGIN`)
@@ -174,15 +174,16 @@ Aplikasi akan berjalan di: `http://localhost:3000`
 
 ## 📮 API Endpoint
 
-| Method | URL                     | Auth | Deskripsi                        |
-|--------|--------------------------|------|----------------------------------|
-| POST   | `/auth/register`         | ❌   | Daftar user baru                 |
-| POST   | `/auth/login`            | ❌   | Login dan dapatkan token JWT     |
-| POST   | `/auth/logout`           | ✅   | Logout, hapus token dari Redis   |
-| POST   | `/auth/change-password`  | ✅   | Ganti password user              |
-| GET    | `/auth/profile`          | ✅   | Lihat data user yang sedang login|
+| Method | URL                     | Auth | Deskripsi                         |
+| ------ | ----------------------- | ---- | --------------------------------- |
+| POST   | `/auth/register`        | ❌   | Daftar user baru                  |
+| POST   | `/auth/login`           | ❌   | Login dan dapatkan token JWT      |
+| POST   | `/auth/logout`          | ✅   | Logout, hapus token dari Redis    |
+| POST   | `/auth/change-password` | ✅   | Ganti password user               |
+| GET    | `/auth/profile`         | ✅   | Lihat data user yang sedang login |
 
 > Gunakan token JWT di header:
+>
 > ```
 > Authorization: Bearer <access_token>
 > ```
@@ -204,10 +205,10 @@ Aplikasi akan berjalan di: `http://localhost:3000`
 
 ## 🔁 Tentang `CONCURRENT_LOGIN`
 
-| Nilai                | Efek                                         |
-|----------------------|----------------------------------------------|
-| `false` (default)    | Login baru akan menghapus semua token lama   |
-| `true`               | Login baru tidak menghapus token lama        |
+| Nilai             | Efek                                       |
+| ----------------- | ------------------------------------------ |
+| `false` (default) | Login baru akan menghapus semua token lama |
+| `true`            | Login baru tidak menghapus token lama      |
 
 ---
 
@@ -236,15 +237,15 @@ redis-cli get jwt:1:some-jti
 
 ## 🧰 Teknologi yang Digunakan
 
-| Library         | Fungsi                        |
-|------------------|-------------------------------|
-| express          | Web framework Node.js         |
-| jsonwebtoken     | Pembuatan & verifikasi JWT     |
-| redis            | Penyimpanan token allowlist    |
-| bcrypt           | Hash password                  |
-| uuid             | Generate ID token (`jti`)      |
-| mysql2           | Query ke MySQL                 |
-| dotenv           | Konfigurasi environment        |
+| Library      | Fungsi                      |
+| ------------ | --------------------------- |
+| express      | Web framework Node.js       |
+| jsonwebtoken | Pembuatan & verifikasi JWT  |
+| redis        | Penyimpanan token allowlist |
+| bcrypt       | Hash password               |
+| uuid         | Generate ID token (`jti`)   |
+| mysql2       | Query ke MySQL              |
+| dotenv       | Konfigurasi environment     |
 
 ---
 
@@ -276,7 +277,6 @@ Pull Request & feedback sangat disambut.
 
 Hubungi: [your.email@example.com]
 
-
 ---
 
 ## 🔏 Signature Verification (X-Signature)
@@ -285,10 +285,10 @@ Semua request `POST`, `PUT`, dan `DELETE` **wajib disertai header signature** un
 
 ### 🛡 Header yang Wajib:
 
-| Header         | Keterangan                              |
-|----------------|------------------------------------------|
-| `X-Signature`  | HMAC SHA256 dari (method + uri + body + timestamp) |
-| `X-Timestamp`  | Unix timestamp dalam milidetik           |
+| Header        | Keterangan                                         |
+| ------------- | -------------------------------------------------- |
+| `X-Signature` | HMAC SHA256 dari (method + uri + body + timestamp) |
+| `X-Timestamp` | Unix timestamp dalam milidetik                     |
 
 ### 🔧 Format Signature
 
@@ -300,6 +300,7 @@ HMAC_SHA256(
 ```
 
 Contoh `dataToSign`:
+
 ```
 POST/api/auth/login{"email":"a@a.com","password":"abc"}1750912634177
 ```
@@ -307,13 +308,10 @@ POST/api/auth/login{"email":"a@a.com","password":"abc"}1750912634177
 ### 🧪 Generate Signature (Node.js)
 
 ```js
-const crypto = require('crypto');
+const crypto = require("crypto");
 
 const dataToSign = method + uri + body + timestamp;
-const signature = crypto
-  .createHmac('sha256', SIGNATURE_KEY)
-  .update(dataToSign)
-  .digest('hex');
+const signature = crypto.createHmac("sha256", SIGNATURE_KEY).update(dataToSign).digest("hex");
 ```
 
 ### ⚠️ Signature Timeout
@@ -340,16 +338,16 @@ const fullUrl = pm.variables.replaceIn(pm.request.url.toString());
 const path = new URL(fullUrl).pathname;
 
 // Tentukan apakah method punya body
-let bodyString = '';
-const methodsWithBody = ['POST', 'PUT', 'PATCH', 'DELETE'];
+let bodyString = "";
+const methodsWithBody = ["POST", "PUT", "PATCH", "DELETE"];
 
 if (methodsWithBody.includes(pm.request.method)) {
-  const raw = pm.request.body?.raw || '';
+  const raw = pm.request.body?.raw || "";
   try {
     const parsedBody = JSON.parse(raw);
     bodyString = JSON.stringify(parsedBody);
   } catch (e) {
-    bodyString = '';
+    bodyString = "";
   }
 }
 
@@ -362,24 +360,20 @@ const encoder = new TextEncoder();
 const keyData = encoder.encode(SIGNATURE_KEY);
 const data = encoder.encode(dataToSign);
 
-crypto.subtle.importKey(
-  'raw',
-  keyData,
-  { name: 'HMAC', hash: 'SHA-256' },
-  false,
-  ['sign']
-).then(cryptoKey => {
-  return crypto.subtle.sign('HMAC', cryptoKey, data);
-}).then(signatureBuffer => {
-  const signatureHex = Array.from(new Uint8Array(signatureBuffer))
-    .map(b => b.toString(16).padStart(2, '0'))
-    .join('');
+crypto.subtle
+  .importKey("raw", keyData, { name: "HMAC", hash: "SHA-256" }, false, ["sign"])
+  .then((cryptoKey) => {
+    return crypto.subtle.sign("HMAC", cryptoKey, data);
+  })
+  .then((signatureBuffer) => {
+    const signatureHex = Array.from(new Uint8Array(signatureBuffer))
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("");
 
-  // Masukkan header signature dan timestamp
-  pm.request.headers.upsert({ key: "X-Signature", value: signatureHex });
-  pm.request.headers.upsert({ key: "X-Timestamp", value: timestamp.toString() });
+    // Masukkan header signature dan timestamp
+    pm.request.headers.upsert({ key: "X-Signature", value: signatureHex });
+    pm.request.headers.upsert({ key: "X-Timestamp", value: timestamp.toString() });
 
-  console.log("✅ Signature generated:", signatureHex);
-});
+    console.log("✅ Signature generated:", signatureHex);
+  });
 ```
-
