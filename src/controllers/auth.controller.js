@@ -68,7 +68,9 @@ const register = async (req, res) => {
 
     const result = await userModel.createUser({ name, email, password: hashedPassword });
 
-    const token = jwt.sign({ id: result.id, email }, SECRET_KEY, {
+    const jti = uuidv4();
+
+    const token = jwt.sign({ id: result.id, email: result.email, jti }, SECRET_KEY, {
       expiresIn: EXPIRES_IN_SEC,
     });
 
