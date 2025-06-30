@@ -104,26 +104,32 @@ Buat file `.env` dan isi dengan konfigurasi berikut:
 
 ```env
 PORT=3000
-
-# JWT
-JWT_SECRET=your_super_secret_key
-JWT_EXPIRES_IN=3600        # dalam detik
-
-# Password hashing
-BCRYPT_ROUNDS=10
+NODE_ENV=development
 
 # Redis
 REDIS_URL=redis://localhost:6379
 
-# MySQL
-DB_HOST=localhost
+# Database
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
 DB_PORT=3306
-DB_USER=root
+DB_DATABASE=api_test
+DB_USERNAME=root
 DB_PASSWORD=
-DB_NAME=api_test
+
+# JWT
+JWT_SECRET=
+JWT_EXPIRES_IN=36000 #second
+
+# Password hashing
+BCRYPT_ROUNDS=10
+
+# Signature for Request Verification
+SIGNATURE_KEY=
+SIGNATURE_TIMELIMIT=60000 #miliseconds
 
 # Multi-session policy
-CONCURRENT_LOGIN=false     # false = 1 sesi aktif per user
+CONCURRENT_LOGIN=false   # false = 1 sesi aktif per user
 ```
 
 ---
