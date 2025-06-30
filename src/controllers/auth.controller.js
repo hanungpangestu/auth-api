@@ -125,7 +125,7 @@ const changePassword = async (req, res) => {
 
 const profile = async (req, res) => {
   try {
-    const user = await userModel.findByEmail(req.user.email);
+    const user = await userModel.findById(req.user.id);
 
     return res.json({
       id: user.id,
