@@ -38,7 +38,7 @@ Hasil signature harus cocok dengan hasil di server menggunakan `SIGNATURE_KEY`.
 - ✅ Register & Login menggunakan email dan password
 - ✅ JWT (Bearer token) dengan `jti` unik
 - ✅ Redis sebagai token allowlist (TTL per token)
-- ✅ Middleware `verifyToken` hanya menerima token yang terdaftar di Redis
+- ✅ Middleware `auth.middleware` hanya menerima token yang terdaftar di Redis
 - ✅ Middleware validasi `X-Signature` untuk setiap request (HMAC SHA256)
 - ✅ Logout menghapus token dari Redis (token tidak valid lagi)
 - ✅ Ganti password & akses profil user
@@ -59,20 +59,40 @@ Hasil signature harus cocok dengan hasil di server menggunakan `SIGNATURE_KEY`.
 ## 🧱 Struktur Proyek
 
 ```
-project/
-├── config/
-│   ├── db.js              # Koneksi ke MySQL
-│   └── redis.js           # Koneksi ke Redis
-├── controllers/
-│   └── auth.controller.js # Logika login/register/logout
-├── models/
-│   └── user.model.js      # Query user ke database
-├── middlewares/
-│   └── verifyToken.js     # Validasi token aktif (dari Redis)
-├── routes/
-│   └── auth.routes.js     # Routing untuk auth API
-├── .env                   # Konfigurasi lingkungan
-├── server.js              # Entry point aplikasi
+project-root/
+├── src/
+│   ├── config/                     # Konfigurasi koneksi
+│   │   ├── db.js                   # MySQL
+│   │   └── redis.js                # Redis
+│   │
+│   ├── controllers/               # Business logic
+│   │   └── auth.controller.js     # Login, Register, Logout, dsb
+│   │
+│   ├── middlewares/              # Middleware untuk token dan signature
+│   │   ├── auth.middleware.js          # Validasi JWT & whitelist Redis
+│   │   └── signature.middleware.js     # Validasi X-Signature + X-Timestamp
+│   │
+│   ├── models/
+│   │   └── user.model.js          # Akses data user di database
+│   │
+│   ├── routes/
+│   │   ├── auth.routes.js         # Routing untuk auth API
+│   │   └── index.js               # Menggabungkan semua router
+│   │
+│   └── utils/                     # (Opsional) Helper dan fungsi utilitas
+│
+├── app.js                         # Inisialisasi express app (import router, middleware)
+├── server.js                      # Start server dan koneksi global
+│
+├── .env                           # Variabel lingkungan (jangan di-commit)
+├── .env.example                   # Contoh konfigurasi untuk dev/clone
+├── .gitignore                     # Ignore .env, node_modules, dll
+│
+├── API TEST.postman_collection.json       # Koleksi API Postman
+├── API TEST.postman_environment.json      # Environment variabel Postman
+│
+├── package.json
+├── package-lock.json
 └── README.md
 ```
 
