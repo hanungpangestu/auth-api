@@ -110,6 +110,10 @@ const changePassword = async (req, res) => {
       return res.status(401).json({ error: "Old password is incorrect." });
     }
 
+    if (new_password === password) {
+      return res.status(422).json({ error: "New password cannot be the same as the old password." });
+    }
+
     const hashedNewPassword = await bcrypt.hash(new_password, BCRYPT_ROUNDS);
 
     const success = await userModel.changePassword(user.id, hashedNewPassword);
