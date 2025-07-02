@@ -102,7 +102,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"name\": \"Woamwo omo\",\n    \"email\": \"test9@gmail.com\",\n    \"password\": \"123123\",\n    \"password_confirmation\": \"123123\"\n}",
+							"raw": "{\n    \"name\": \"Woamwo omo\",\n    \"email\": \"test3@gmail.com\",\n    \"password\": \"123123\",\n    \"password_confirmation\": \"123123\"\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -222,6 +222,15 @@
 								"type": "text"
 							}
 						],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
 						"url": {
 							"raw": "{{base_url}}auth/refresh",
 							"host": [
@@ -236,6 +245,18 @@
 				},
 				{
 					"name": "LOGOUT",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
 					"request": {
 						"auth": {
 							"type": "bearer",
@@ -247,7 +268,7 @@
 								}
 							]
 						},
-						"method": "DELETE",
+						"method": "GET",
 						"header": [],
 						"url": {
 							"raw": "{{base_url}}auth/logout",
@@ -259,7 +280,173 @@
 							]
 						}
 					},
-					"response": []
+					"response": [
+						{
+							"name": "Unauthorized",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}auth/logout",
+									"host": [
+										"{{base_url}}auth"
+									],
+									"path": [
+										"logout"
+									]
+								}
+							},
+							"status": "Unauthorized",
+							"code": 401,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "X-Powered-By",
+									"value": "Express"
+								},
+								{
+									"key": "Access-Control-Allow-Origin",
+									"value": "*"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=utf-8"
+								},
+								{
+									"key": "Content-Length",
+									"value": "25"
+								},
+								{
+									"key": "ETag",
+									"value": "W/\"19-1luTU257I9tvKUXOJotGBQDVDqk\""
+								},
+								{
+									"key": "Date",
+									"value": "Tue, 01 Jul 2025 02:50:22 GMT"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								},
+								{
+									"key": "Keep-Alive",
+									"value": "timeout=5"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"error\": \"Invalid token\"\n}"
+						},
+						{
+							"name": "OK",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}auth/logout",
+									"host": [
+										"{{base_url}}auth"
+									],
+									"path": [
+										"logout"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "X-Powered-By",
+									"value": "Express"
+								},
+								{
+									"key": "Access-Control-Allow-Origin",
+									"value": "*"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=utf-8"
+								},
+								{
+									"key": "Content-Length",
+									"value": "32"
+								},
+								{
+									"key": "ETag",
+									"value": "W/\"20-OmL2xS5vWYkDzgU/AWkkViWJBp4\""
+								},
+								{
+									"key": "Date",
+									"value": "Tue, 01 Jul 2025 02:50:50 GMT"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								},
+								{
+									"key": "Keep-Alive",
+									"value": "timeout=5"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"message\": \"Logout successful.\"\n}"
+						},
+						{
+							"name": "Internal Error",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}auth/logout",
+									"host": [
+										"{{base_url}}auth"
+									],
+									"path": [
+										"logout"
+									]
+								}
+							},
+							"status": "Internal Server Error",
+							"code": 500,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "X-Powered-By",
+									"value": "Express"
+								},
+								{
+									"key": "Access-Control-Allow-Origin",
+									"value": "*"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=utf-8"
+								},
+								{
+									"key": "Content-Length",
+									"value": "32"
+								},
+								{
+									"key": "ETag",
+									"value": "W/\"20-OmL2xS5vWYkDzgU/AWkkViWJBp4\""
+								},
+								{
+									"key": "Date",
+									"value": "Tue, 01 Jul 2025 02:50:50 GMT"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								},
+								{
+									"key": "Keep-Alive",
+									"value": "timeout=5"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"error\": \"Internal server error.\"\n}"
+						}
+					]
 				}
 			]
 		}
@@ -273,34 +460,44 @@
 				"exec": [
 					"const SIGNATURE_KEY = pm.environment.get(\"SIGNATURE_KEY\") || \"default_secret\";",
 					"",
-					"// Timestamp seperti backend",
+					"// Waktu timestamp seperti di backend",
 					"const now = Date.now();",
-					"const datepProccess = Math.trunc(now / 1e3);",
-					"const timestamp = 1e3 * datepProccess + (datepProccess % 997);",
+					"const dateProcessed = Math.trunc(now / 1e3);",
+					"const timestamp = 1e3 * dateProcessed + (dateProcessed % 997);",
 					"",
-					"// Resolve URL dari {{base_url}}",
+					"// Path dari resolved URL",
 					"const fullUrl = pm.variables.replaceIn(pm.request.url.toString());",
 					"const path = new URL(fullUrl).pathname;",
 					"",
-					"// Tentukan apakah method punya body",
-					"let bodyString = '';",
+					"// Hanya metode ini yang boleh punya body",
 					"const methodsWithBody = ['POST', 'PUT', 'PATCH', 'DELETE'];",
+					"",
+					"let bodyString = '';",
+					"let bodyHash = '';",
 					"",
 					"if (methodsWithBody.includes(pm.request.method)) {",
 					"  const raw = pm.request.body?.raw || '';",
 					"  try {",
-					"    const parsedBody = JSON.parse(raw);",
-					"    bodyString = JSON.stringify(parsedBody);",
+					"    const parsed = JSON.parse(raw);",
+					"    bodyString = JSON.stringify(parsed);",
+					"    const bodyBuffer = new TextEncoder().encode(bodyString);",
+					"    const hashBuffer = crypto.subtle.digest('SHA-256', bodyBuffer);",
+					"    bodyHash = await hashBuffer.then(buffer =>",
+					"      Array.from(new Uint8Array(buffer))",
+					"        .map(b => b.toString(16).padStart(2, '0'))",
+					"        .join('')",
+					"    );",
 					"  } catch (e) {",
-					"    bodyString = '';",
+					"    console.warn(\"⚠️ Body parsing error, fallback to empty string.\");",
 					"  }",
 					"}",
+					"console.log(\"bodyString:\", bodyString);",
 					"",
-					"// Bangun string signature",
-					"const dataToSign = pm.request.method + path + bodyString + timestamp;",
+					"// Build dataToSign",
+					"const dataToSign = pm.request.method + path + bodyHash + timestamp;",
 					"console.log(\"🔐 dataToSign:\", dataToSign);",
 					"",
-					"// Buat signature dengan Web Crypto API",
+					"// Sign the string",
 					"const encoder = new TextEncoder();",
 					"const keyData = encoder.encode(SIGNATURE_KEY);",
 					"const data = encoder.encode(dataToSign);",
@@ -311,19 +508,17 @@
 					"  { name: 'HMAC', hash: 'SHA-256' },",
 					"  false,",
 					"  ['sign']",
-					").then(cryptoKey => {",
-					"  return crypto.subtle.sign('HMAC', cryptoKey, data);",
-					"}).then(signatureBuffer => {",
-					"  const signatureHex = Array.from(new Uint8Array(signatureBuffer))",
-					"    .map(b => b.toString(16).padStart(2, '0'))",
-					"    .join('');",
+					").then(key => crypto.subtle.sign('HMAC', key, data))",
+					"  .then(signatureBuffer => {",
+					"    const signatureHex = Array.from(new Uint8Array(signatureBuffer))",
+					"      .map(b => b.toString(16).padStart(2, '0'))",
+					"      .join('');",
 					"",
-					"  // Masukkan header signature dan timestamp",
-					"  pm.request.headers.upsert({ key: \"X-Signature\", value: signatureHex });",
-					"  pm.request.headers.upsert({ key: \"X-Timestamp\", value: timestamp.toString() });",
+					"    pm.request.headers.upsert({ key: \"X-Signature\", value: signatureHex });",
+					"    pm.request.headers.upsert({ key: \"X-Timestamp\", value: timestamp.toString() });",
 					"",
-					"  console.log(\"✅ Signature generated:\", signatureHex);",
-					"});"
+					"    console.log(\"✅ Signature generated:\", signatureHex);",
+					"  });"
 				]
 			}
 		},
