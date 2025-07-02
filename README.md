@@ -151,6 +151,12 @@ redis-cli ping  # Output: PONG
 npm start
 ```
 
+or 
+
+```bash
+pm2 start server.js -i max
+```
+
 ---
 
 ## 📮 API Endpoint
