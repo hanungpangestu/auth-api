@@ -4,8 +4,6 @@ RESTful API otentikasi berbasis Node.js/Express dengan sistem **JWT allowlist (w
 
 ---
 
----
-
 ## 🔏 Signature Verification
 
 Setiap request ke endpoint API ini (terutama `POST`, `PUT`, `DELETE`) **wajib disertai dua header keamanan**:
@@ -16,14 +14,16 @@ Setiap request ke endpoint API ini (terutama `POST`, `PUT`, `DELETE`) **wajib di
 Signature dibuat dari kombinasi:
 
 ```
-method + path + body + timestamp
+method + path + SHA256(body) + timestamp
 ```
 
 Contoh yang akan di-hash:
 
 ```
-POST/api/auth/login{"email":"a@a.com","password":"abc"}1750912634177
+POST/api/auth/login03ac674216f3e15c761ee1a5e255f067953623c8179c2514dba7f66fbaae67c8750912634177
 ```
+
+> Catatan: `03ac6742...` adalah hasil SHA256 dari string `{"email":"a@a.com","password":"abc"}`
 
 Hasil signature harus cocok dengan hasil di server menggunakan `SIGNATURE_KEY`.
 
@@ -61,36 +61,27 @@ Hasil signature harus cocok dengan hasil di server menggunakan `SIGNATURE_KEY`.
 ```
 project-root/
 ├── src/
-│   ├── config/                     # Konfigurasi koneksi
-│   │   ├── db.js                   # MySQL
-│   │   └── redis.js                # Redis
-│   │
-│   ├── controllers/               # Business logic
-│   │   └── auth.controller.js     # Login, Register, Logout, dsb
-│   │
-│   ├── middlewares/              # Middleware untuk token dan signature
-│   │   ├── auth.middleware.js          # Validasi JWT & whitelist Redis
-│   │   └── signature.middleware.js     # Validasi X-Signature + X-Timestamp
-│   │
+│   ├── config/
+│   │   ├── db.js
+│   │   └── redis.js
+│   ├── controllers/
+│   │   └── auth.controller.js
+│   ├── middlewares/
+│   │   ├── auth.middleware.js
+│   │   └── signature.middleware.js
 │   ├── models/
-│   │   └── user.model.js          # Akses data user di database
-│   │
+│   │   └── user.model.js
 │   ├── routes/
-│   │   ├── auth.routes.js         # Routing untuk auth API
-│   │   └── index.js               # Menggabungkan semua router
-│   │
-│   └── utils/                     # (Opsional) Helper dan fungsi utilitas
-│
-├── app.js                         # Inisialisasi express app (import router, middleware)
-├── server.js                      # Start server dan koneksi global
-│
-├── .env                           # Variabel lingkungan (jangan di-commit)
-├── .env.example                   # Contoh konfigurasi untuk dev/clone
-├── .gitignore                     # Ignore .env, node_modules, dll
-│
-├── API TEST.postman_collection.json       # Koleksi API Postman
-├── API TEST.postman_environment.json      # Environment variabel Postman
-│
+│   │   ├── auth.routes.js
+│   │   └── index.js
+│   └── utils/
+├── app.js
+├── server.js
+├── .env
+├── .env.example
+├── .gitignore
+├── API TEST.postman_collection.json
+├── API TEST.postman_environment.json
 ├── package.json
 ├── package-lock.json
 └── README.md
@@ -100,43 +91,27 @@ project-root/
 
 ## ⚙️ Environment Variables
 
-Buat file `.env` dan isi dengan konfigurasi berikut:
-
 ```env
 PORT=3000
 NODE_ENV=development
-
-# Redis
 REDIS_URL=redis://localhost:6379
-
-# Database
 DB_CONNECTION=mysql
 DB_HOST=127.0.0.1
 DB_PORT=3306
 DB_DATABASE=api_test
 DB_USERNAME=root
 DB_PASSWORD=
-
-# JWT
 JWT_SECRET=
-JWT_EXPIRES_IN=36000 #second
-
-# Password hashing
+JWT_EXPIRES_IN=36000
 BCRYPT_ROUNDS=10
-
-# Signature for Request Verification
 SIGNATURE_KEY=
-SIGNATURE_TIMELIMIT=60000 #miliseconds
-
-# Multi-session policy
-CONCURRENT_LOGIN=false   # false = 1 sesi aktif per user
+SIGNATURE_TIMELIMIT=60000
+CONCURRENT_LOGIN=false
 ```
 
 ---
 
 ## 📦 Instalasi
-
-### 1. Clone dan install dependencies
 
 ```bash
 git clone https://github.com/your-repo/project-auth-api.git
@@ -146,9 +121,7 @@ npm install
 
 ---
 
-### 2. Siapkan MySQL
-
-Buat database dan tabel user:
+### MySQL & Redis
 
 ```sql
 CREATE DATABASE api_test;
@@ -163,131 +136,183 @@ CREATE TABLE users (
 );
 ```
 
----
-
-### 3. Jalankan Redis
-
-#### a. Native (macOS/Linux)
-
 ```bash
 redis-server
-```
-
-#### b. Docker (opsional)
-
-```bash
+# atau via Docker
 docker run -d --name redis -p 6379:6379 redis
-```
-
-#### c. Test Redis
-
-```bash
-redis-cli ping
-# Output: PONG
+redis-cli ping  # Output: PONG
 ```
 
 ---
 
-### 4. Jalankan server
+## 🏃 Jalankan server
 
 ```bash
 npm start
 ```
 
-Aplikasi akan berjalan di: `http://localhost:3000`
-
 ---
 
 ## 📮 API Endpoint
 
-| Method | URL                     | Auth | Deskripsi                         |
-| ------ | ----------------------- | ---- | --------------------------------- |
-| POST   | `/auth/register`        | ❌   | Daftar user baru                  |
-| POST   | `/auth/login`           | ❌   | Login dan dapatkan token JWT      |
-| POST   | `/auth/logout`          | ✅   | Logout, hapus token dari Redis    |
-| POST   | `/auth/change-password` | ✅   | Ganti password user               |
-| GET    | `/auth/profile`         | ✅   | Lihat data user yang sedang login |
+| Method | URL                     | Auth | Deskripsi              |
+| ------ | ----------------------- | ---- | ---------------------- |
+| POST   | `/auth/register`        | ❌   | Register user baru     |
+| POST   | `/auth/login`           | ❌   | Login & dapatkan token |
+| POST   | `/auth/logout`          | ✅   | Logout & hapus token   |
+| POST   | `/auth/change-password` | ✅   | Ganti password         |
+| GET    | `/auth/profile`         | ✅   | Ambil profil user      |
 
-> Gunakan token JWT di header:
->
-> ```
-> Authorization: Bearer <access_token>
-> ```
+Header:
 
----
-
-## 🔐 Cara Kerja JWT Allowlist (Redis)
-
-- Setiap login menghasilkan `jti` (UUID)
-- Token disimpan di Redis:
-  ```
-  jwt:<user_id>:<jti> = "allow"
-  ```
-- Token memiliki TTL sesuai `expiresIn`
-- Middleware hanya menerima token yang **masih ada di Redis**
-- Saat logout, token dihapus dari Redis (tidak valid lagi)
+```
+Authorization: Bearer <access_token>
+```
 
 ---
 
-## 🔁 Tentang `CONCURRENT_LOGIN`
+## 🔐 JWT + Redis (Allowlist)
 
-| Nilai             | Efek                                       |
-| ----------------- | ------------------------------------------ |
-| `false` (default) | Login baru akan menghapus semua token lama |
-| `true`            | Login baru tidak menghapus token lama      |
+- Token disimpan di Redis dengan format `jwt:<user_id>:<jti> = "allow"`
+- Saat logout, key akan dihapus
+- Hanya token yang masih ada di Redis yang valid
+
+---
+
+## 🔁 Tentang CONCURRENT_LOGIN
+
+| Nilai   | Efek                               |
+| ------- | ---------------------------------- |
+| `false` | Login baru akan menimpa semua sesi |
+| `true`  | Setiap sesi login bisa coexist     |
 
 ---
 
 ## 🧪 Debug Redis
 
 ```bash
-# Lihat semua token aktif
 redis-cli keys jwt:*
-
-# Cek TTL token
-redis-cli ttl jwt:1:some-jti
-
-# Lihat isi token
-redis-cli get jwt:1:some-jti
+redis-cli get jwt:<user_id>:<jti>
+redis-cli ttl jwt:<user_id>:<jti>
 ```
 
 ---
 
-## 📌 Catatan
+## 🧰 Teknologi
 
-- Token akan otomatis tidak valid jika tidak ditemukan di Redis
-- Tidak pakai refresh token, tapi sistem ini cocok untuk session berbasis access_token pendek
-- Token hanya valid saat Redis hidup dan menyimpannya
-
----
-
-## 🧰 Teknologi yang Digunakan
-
-| Library      | Fungsi                      |
-| ------------ | --------------------------- |
-| express      | Web framework Node.js       |
-| jsonwebtoken | Pembuatan & verifikasi JWT  |
-| redis        | Penyimpanan token allowlist |
-| bcrypt       | Hash password               |
-| uuid         | Generate ID token (`jti`)   |
-| mysql2       | Query ke MySQL              |
-| dotenv       | Konfigurasi environment     |
+| Library      | Fungsi               |
+| ------------ | -------------------- |
+| express      | Routing & middleware |
+| jsonwebtoken | JWT handling         |
+| redis        | Store token          |
+| bcrypt       | Password hashing     |
+| uuid         | Generate jti         |
+| mysql2       | DB Connection        |
+| dotenv       | Env config           |
 
 ---
 
-## 🔐 Keamanan Tambahan (opsional)
+## 🧪 Signature Middleware (Node.js)
 
-- Gunakan HTTPS (SSL) untuk semua komunikasi
-- Batasi jumlah login/token per user via Redis key counting
-- Implementasikan refresh token untuk token rotasi jangka panjang (opsional)
+```js
+const crypto = require("crypto");
+
+const SIGNATURE_KEY = process.env.SIGNATURE_KEY || "default_secret";
+const SIGNATURE_TIMELIMIT = parseInt(process.env.SIGNATURE_TIMELIMIT || "60000");
+
+const verifySignature = (req, res, next) => {
+  const signature = req.headers["x-signature"];
+  const timestamp = req.headers["x-timestamp"];
+
+  if (!signature || !timestamp) {
+    return res.status(401).json({ error: "Missing signature or timestamp" });
+  }
+
+  const now = Date.now();
+  const diff = Math.abs(now - Number(timestamp));
+  if (diff > SIGNATURE_TIMELIMIT) {
+    return res.status(401).json({ error: "Signature timestamp expired" });
+  }
+
+  const methodsWithBody = ["POST", "PUT", "PATCH", "DELETE"];
+  let bodyString = "";
+  let bodyHash = "";
+
+  if (methodsWithBody.includes(req.method) && req.body && Object.keys(req.body).length > 0) {
+    bodyString = JSON.stringify(req.body);
+    bodyHash = crypto.createHash("sha256").update(bodyString).digest("hex");
+  }
+
+  const uri = req.originalUrl.split("?")[0];
+  const dataToSign = req.method + uri + bodyHash + timestamp;
+  const expectedSignature = crypto.createHmac("sha256", SIGNATURE_KEY).update(dataToSign).digest("hex");
+
+  if (expectedSignature !== signature) {
+    return res.status(401).json({ error: "Invalid signature" });
+  }
+
+  next();
+};
+```
 
 ---
 
-## 🧪 Testing dengan Postman
+## 🧪 Postman Pre-request Script
 
-- Tambahkan variable `base_url` = `http://localhost:3000`
-- Kirim request ke `{{base_url}}/auth/login`
-- Gunakan `access_token` di header untuk endpoint yang butuh autentikasi
+```js
+const SIGNATURE_KEY = pm.environment.get("SIGNATURE_KEY") || "default_secret";
+
+const now = Date.now();
+const dateProcessed = Math.trunc(now / 1e3);
+const timestamp = 1e3 * dateProcessed + (dateProcessed % 997);
+
+const fullUrl = pm.variables.replaceIn(pm.request.url.toString());
+const path = new URL(fullUrl).pathname;
+
+const methodsWithBody = ["POST", "PUT", "PATCH", "DELETE"];
+
+let bodyString = "";
+let bodyHash = "";
+
+if (methodsWithBody.includes(pm.request.method)) {
+  const raw = pm.request.body?.raw || "";
+  try {
+    const parsed = JSON.parse(raw);
+    bodyString = JSON.stringify(parsed);
+    const bodyBuffer = new TextEncoder().encode(bodyString);
+    const hashBuffer = crypto.subtle.digest("SHA-256", bodyBuffer);
+    bodyHash = await hashBuffer.then((buffer) =>
+      Array.from(new Uint8Array(buffer))
+        .map((b) => b.toString(16).padStart(2, "0"))
+        .join("")
+    );
+  } catch (e) {
+    console.warn("⚠️ Body parsing error, fallback to empty string.");
+  }
+}
+console.log("bodyString:", bodyString);
+
+const dataToSign = pm.request.method + path + bodyHash + timestamp;
+console.log("🔐 dataToSign:", dataToSign);
+
+const encoder = new TextEncoder();
+const keyData = encoder.encode(SIGNATURE_KEY);
+const data = encoder.encode(dataToSign);
+
+crypto.subtle
+  .importKey("raw", keyData, { name: "HMAC", hash: "SHA-256" }, false, ["sign"])
+  .then((key) => crypto.subtle.sign("HMAC", key, data))
+  .then((signatureBuffer) => {
+    const signatureHex = Array.from(new Uint8Array(signatureBuffer))
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("");
+
+    pm.request.headers.upsert({ key: "X-Signature", value: signatureHex });
+    pm.request.headers.upsert({ key: "X-Timestamp", value: timestamp.toString() });
+
+    console.log("✅ Signature generated:", signatureHex);
+  });
+```
 
 ---
 
@@ -295,111 +320,6 @@ redis-cli get jwt:1:some-jti
 
 MIT — bebas digunakan & dikembangkan.
 
----
-
 ## 🤝 Kontribusi
 
 Pull Request & feedback sangat disambut.
-
-Hubungi: [your.email@example.com]
-
----
-
-## 🔏 Signature Verification (X-Signature)
-
-Semua request `POST`, `PUT`, dan `DELETE` **wajib disertai header signature** untuk validasi integritas dan keamanan.
-
-### 🛡 Header yang Wajib:
-
-| Header        | Keterangan                                         |
-| ------------- | -------------------------------------------------- |
-| `X-Signature` | HMAC SHA256 dari (method + uri + body + timestamp) |
-| `X-Timestamp` | Unix timestamp dalam milidetik                     |
-
-### 🔧 Format Signature
-
-```text
-HMAC_SHA256(
-  method + uri + body + timestamp,
-  SIGNATURE_KEY
-)
-```
-
-Contoh `dataToSign`:
-
-```
-POST/api/auth/login{"email":"a@a.com","password":"abc"}1750912634177
-```
-
-### 🧪 Generate Signature (Node.js)
-
-```js
-const crypto = require("crypto");
-
-const dataToSign = method + uri + body + timestamp;
-const signature = crypto.createHmac("sha256", SIGNATURE_KEY).update(dataToSign).digest("hex");
-```
-
-### ⚠️ Signature Timeout
-
-- Signature **kedaluwarsa** jika selisih `X-Timestamp` dengan waktu server > SIGNATURE_TIMELIMIT (ms)
-- Default limit: 60 detik (60000 ms)
-
----
-
-## 📋 Tips Testing di Postman
-
-Gunakan Pre-request Script berikut agar header `X-Signature` dan `X-Timestamp` otomatis dibuat:
-
-```js
-const SIGNATURE_KEY = pm.environment.get("SIGNATURE_KEY") || "default_secret";
-
-// Timestamp seperti backend
-const now = Date.now();
-const datepProccess = Math.trunc(now / 1e3);
-const timestamp = 1e3 * datepProccess + (datepProccess % 997);
-
-// Resolve URL dari {{base_url}}
-const fullUrl = pm.variables.replaceIn(pm.request.url.toString());
-const path = new URL(fullUrl).pathname;
-
-// Tentukan apakah method punya body
-let bodyString = "";
-const methodsWithBody = ["POST", "PUT", "PATCH", "DELETE"];
-
-if (methodsWithBody.includes(pm.request.method)) {
-  const raw = pm.request.body?.raw || "";
-  try {
-    const parsedBody = JSON.parse(raw);
-    bodyString = JSON.stringify(parsedBody);
-  } catch (e) {
-    bodyString = "";
-  }
-}
-
-// Bangun string signature
-const dataToSign = pm.request.method + path + bodyString + timestamp;
-console.log("dataToSign:", dataToSign);
-
-// Buat signature dengan Web Crypto API
-const encoder = new TextEncoder();
-const keyData = encoder.encode(SIGNATURE_KEY);
-const data = encoder.encode(dataToSign);
-
-crypto.subtle
-  .importKey("raw", keyData, { name: "HMAC", hash: "SHA-256" }, false, ["sign"])
-  .then((cryptoKey) => {
-    return crypto.subtle.sign("HMAC", cryptoKey, data);
-  })
-  .then((signatureBuffer) => {
-    const signatureHex = Array.from(new Uint8Array(signatureBuffer))
-      .map((b) => b.toString(16).padStart(2, "0"))
-      .join("");
-
-    // Masukkan header signature dan timestamp
-    pm.request.headers.upsert({ key: "X-Signature", value: signatureHex });
-    pm.request.headers.upsert({ key: "X-Timestamp", value: timestamp.toString() });
-
-    console.log("Signature generated:", signatureHex);
-  });
-```
