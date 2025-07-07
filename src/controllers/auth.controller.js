@@ -2,7 +2,6 @@ const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const { v4: uuidv4 } = require("uuid");
 const redis = require("../config/redis");
-const db = require("../config/db");
 const userModel = require("../models/user.model");
 
 const SECRET_KEY = process.env.JWT_SECRET || "default_secret_key_test1233";
@@ -20,21 +19,19 @@ const login = async (req, res) => {
     const passwordMatch = await bcrypt.compare(password, user.password);
     if (!passwordMatch) return res.status(401).json({ error: "Incorrect email or password." });
 
-    if (!CONCURRENT_LOGIN) {
-      const pattern = `jwt:${user.id}:*`;
-      const keys = await redis.keys(pattern);
-      if (keys.length > 0) {
-        await redis.del(keys);
-      }
-    }
-
     const jti = uuidv4();
+    const redisSetKey = `jwt:${user.id}`;
+
+    if (!CONCURRENT_LOGIN) {
+      await redis.sendCommand(["DEL", redisSetKey]);
+    }
 
     const token = jwt.sign({ id: user.id, email: user.email, jti }, SECRET_KEY, {
       expiresIn: EXPIRES_IN_SEC,
     });
 
-    await redis.setEx(`jwt:${user.id}:${jti}`, EXPIRES_IN_SEC, "allow");
+    await redis.sendCommand(["SADD", String(redisSetKey), String(jti)]);
+    await redis.sendCommand(["EXPIRE", String(redisSetKey), String(EXPIRES_IN_SEC)]);
 
     return res.json({
       access_token: token,
@@ -65,16 +62,17 @@ const register = async (req, res) => {
     }
 
     const hashedPassword = await bcrypt.hash(password, BCRYPT_ROUNDS);
-
     const result = await userModel.createUser({ name, email, password: hashedPassword });
 
     const jti = uuidv4();
+    const redisSetKey = `jwt:${result.id}`;
 
     const token = jwt.sign({ id: result.id, email: result.email, jti }, SECRET_KEY, {
       expiresIn: EXPIRES_IN_SEC,
     });
 
-    await redis.setEx(`jwt:${result.id}:${jti}`, EXPIRES_IN_SEC, "allow");
+    await redis.sendCommand(["SADD", String(redisSetKey), String(jti)]);
+    await redis.sendCommand(["EXPIRE", String(redisSetKey), String(EXPIRES_IN_SEC)]);
 
     return res.status(201).json({
       message: "User registered successfully",

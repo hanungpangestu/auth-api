@@ -16,14 +16,15 @@ const verifyToken = async (req, res, next) => {
     const jti = decoded.jti;
     const userId = decoded.id;
 
-    const key = `jwt:${userId}:${jti}`;
-    const exists = await redis.get(key);
-    if (!exists) {
+    const redisSetKey = `jwt:${userId}`;
+    const isValid = await redis.sendCommand(["SISMEMBER", String(redisSetKey), String(jti)]);
+
+    if (!isValid) {
       return res.status(401).json({ error: "Invalid token" });
     }
 
     req.user = decoded;
-    req.tokenKey = key;
+    req.tokenKey = redisSetKey;
     next();
   } catch (err) {
     return res.status(401).json({ error: "Invalid token" });
