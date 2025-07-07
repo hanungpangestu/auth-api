@@ -3,12 +3,23 @@ const crypto = require("crypto");
 const SIGNATURE_KEY = process.env.SIGNATURE_KEY || "default_secret";
 const SIGNATURE_TIMELIMIT = parseInt(process.env.SIGNATURE_TIMELIMIT || "60000"); // dalam ms
 
+function isValidTimestampFormat(timestamp) {
+  const dateProcessed = Math.trunc(timestamp / 1000);
+  const expected = 1000 * dateProcessed + (dateProcessed % 997);
+  console.log(`Timestamp: ${timestamp}, Expected: ${expected}`);
+  return timestamp === expected;
+}
+
 const verifySignature = (req, res, next) => {
   const signature = req.headers["x-signature"];
   const timestamp = req.headers["x-timestamp"];
 
   if (!signature || !timestamp) {
     return res.status(401).json({ error: "Missing signature or timestamp" });
+  }
+
+  if (!isValidTimestampFormat(Number(timestamp))) {
+    return res.status(401).json({ error: "Invalid signature" });
   }
 
   const now = Date.now();
