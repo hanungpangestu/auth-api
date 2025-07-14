@@ -37,7 +37,7 @@ const login = async (req, res) => {
 
     await redis.multi().sAdd(redisSetKey, jti).expire(redisSetKey, EXPIRES_IN_SEC).exec();
 
-    return response.success(res, "Login successful", {
+    return response.success(res, "Login successful.", {
       access_token: token,
       token_type: "bearer",
       expires_in: EXPIRES_IN_SEC,
@@ -80,7 +80,7 @@ const register = async (req, res) => {
 
     return response.success(
       res,
-      "User registered successfully",
+      "User registered successfully.",
       {
         access_token: token,
         token_type: "bearer",

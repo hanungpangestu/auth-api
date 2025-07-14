@@ -21,7 +21,7 @@ function isValidTimestamp(timestamp) {
   const isNotExpired = diff >= -SIGNATURE_ALLOW_FUTURE && diff <= SIGNATURE_TIMELIMIT;
 
   if (process.env.NODE_ENV == "development" || process.env.NODE_ENV == "dev") {
-    console.log(`[Timestamp Check]`);
+    console.log(`\n[Timestamp Check]`);
     console.log(`  Timestamp: ${numericTimestamp}`);
     console.log(`  Expected : ${expected}`);
     console.log(`  Diff     : ${diff}ms`);
