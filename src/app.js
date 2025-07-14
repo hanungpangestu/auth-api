@@ -7,15 +7,27 @@ const verifySignature = require("./middlewares/signature.middleware");
 
 const app = express();
 
-app.use(morgan("dev"));
+app.use(morgan(":method :url :status :res[content-length] - :response-time ms"));
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(verifySignature);
+
+app.use((req, res, next) => {
+  const skipPaths = ["/", "/favicon.ico", "/public"];
+  const shouldSkip = skipPaths.some((path) => req.path === path || req.path.startsWith(path + "/"));
+
+  if (shouldSkip) return next();
+
+  return verifySignature(req, res, next);
+});
 
 app.use("/", routes);
 app.use((req, res) => {
-  res.status(404).json({ message: "Not found" });
+  res.status(404).json({
+    success: false,
+    error: "not_found",
+    message: "The requested resource was not found.",
+  });
 });
 
 module.exports = app;

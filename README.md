@@ -151,7 +151,7 @@ redis-cli ping  # Output: PONG
 npm start
 ```
 
-or 
+or
 
 ```bash
 pm2 start server.js -i max
@@ -230,14 +230,8 @@ const verifySignature = (req, res, next) => {
   const signature = req.headers["x-signature"];
   const timestamp = req.headers["x-timestamp"];
 
-  if (!signature || !timestamp) {
-    return res.status(401).json({ error: "Missing signature or timestamp" });
-  }
-
-  const now = Date.now();
-  const diff = Math.abs(now - Number(timestamp));
-  if (diff > SIGNATURE_TIMELIMIT) {
-    return res.status(401).json({ error: "Signature timestamp expired" });
+  if (!signature || !timestamp || !isValidTimestamp(Number(timestamp))) {
+    return response.error(res, "invalid_signature", "Signature does not match.", 401);
   }
 
   const methodsWithBody = ["POST", "PUT", "PATCH", "DELETE"];
@@ -246,15 +240,17 @@ const verifySignature = (req, res, next) => {
 
   if (methodsWithBody.includes(req.method) && req.body && Object.keys(req.body).length > 0) {
     bodyString = JSON.stringify(req.body);
+
     bodyHash = crypto.createHash("sha256").update(bodyString).digest("hex");
   }
 
-  const uri = req.originalUrl.split("?")[0];
+  const uri = req.originalUrl.split("?")[0]; // strip query string
   const dataToSign = req.method + uri + bodyHash + timestamp;
+
   const expectedSignature = crypto.createHmac("sha256", SIGNATURE_KEY).update(dataToSign).digest("hex");
 
   if (expectedSignature !== signature) {
-    return res.status(401).json({ error: "Invalid signature" });
+    return response.error(res, "invalid_signature", "Signature does not match.", 401);
   }
 
   next();

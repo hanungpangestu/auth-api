@@ -1,31 +1,16 @@
 const crypto = require("crypto");
+const { isValidTimestamp } = require("../utils/validTimestamp");
+
+const response = require("../helpers/response");
 
 const SIGNATURE_KEY = process.env.SIGNATURE_KEY || "default_secret";
-const SIGNATURE_TIMELIMIT = parseInt(process.env.SIGNATURE_TIMELIMIT || "60000"); // dalam ms
-
-function isValidTimestampFormat(timestamp) {
-  const dateProcessed = Math.trunc(timestamp / 1000);
-  const expected = 1000 * dateProcessed + (dateProcessed % 997);
-  console.log(`Timestamp: ${timestamp}, Expected: ${expected}`);
-  return timestamp === expected;
-}
 
 const verifySignature = (req, res, next) => {
   const signature = req.headers["x-signature"];
   const timestamp = req.headers["x-timestamp"];
 
-  if (!signature || !timestamp) {
-    return res.status(401).json({ error: "Missing signature or timestamp" });
-  }
-
-  if (!isValidTimestampFormat(Number(timestamp))) {
-    return res.status(401).json({ error: "Invalid signature" });
-  }
-
-  const now = Date.now();
-  const diff = Math.abs(now - Number(timestamp));
-  if (diff > SIGNATURE_TIMELIMIT) {
-    return res.status(401).json({ error: "Signature timestamp expired" });
+  if (!signature || !timestamp || !isValidTimestamp(Number(timestamp))) {
+    return response.error(res, "invalid_signature", "Signature does not match.", 401);
   }
 
   const methodsWithBody = ["POST", "PUT", "PATCH", "DELETE"];
@@ -44,7 +29,7 @@ const verifySignature = (req, res, next) => {
   const expectedSignature = crypto.createHmac("sha256", SIGNATURE_KEY).update(dataToSign).digest("hex");
 
   if (expectedSignature !== signature) {
-    return res.status(401).json({ error: "Invalid signature" });
+    return response.error(res, "invalid_signature", "Signature does not match.", 401);
   }
 
   next();
