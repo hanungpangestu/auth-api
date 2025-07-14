@@ -31,3 +31,6 @@ build/
 # Redis dump files (optional)
 dump.rdb
 *.rdb
+
+# Testing files
+testing/
